@@ -1,0 +1,42 @@
+%%%% Cantaluppi Camilla 894557
+%%%% Carano Antonio
+
+def_class(ClassName, Parents) :-
+    assert(class(ClassName, Parents, [])).
+
+def_class(ClassName, Parents, Parts) :-
+    assert(class(ClassName, Parents, Parts)).
+
+field(FieldName, Value) :-
+    Field =.. [FieldName, Value],
+    assert(Field).
+
+field(FieldName, Value, Type) :-
+    Field =.. [FieldName, Value, Type],
+    assert(Field).
+
+method(MethodName, Arglist, Form) :-
+    Method =.. [MethodName, Arglist, Form],
+    assert(Method).
+
+part(Field, Method) :-
+    Part =.. [Field | Method],
+    assert(Part).
+
+make(InstanceName, ClassName) :-
+    is_instance(InstanceName, ClassName),
+    .
+
+% is_class(ClassName): Verifica se ClassName è il nome di una classe definita
+is_class(ClassName) :-
+    class(ClassName, _, _).
+
+% is_instance(Instance): Verifica se Instance è un'istanza di una qualsiasi 
+% classe.
+is_instance(Value) :-
+    instance(Value).
+
+% is_instance(Instance, ClassName): Verifica se Instance è un'istanza della 
+% classe ClassName.
+is_instance(Value, ClassName) :-
+    instance(Value, ClassName, _).
