@@ -1,77 +1,87 @@
+
+
 %%%% Cantaluppi Camilla 894557
 %%%% Carano Antonio 902447
+
+% def_class(persona, [], [field(nome, 'anto'), method(talk, [], write("My
+% name is"))]).
+%def_class(studente, [persona], [field(matricola, 1234, integer)]).
+
 :-
-    dynamic(class\3),
-    dynamic(parts_in_class/3),.
+    dynamic(def_class/3),
+    dynamic(def_class/2),
+    dynamic(field/2),
+    dynamic(field/3),
+    dynamic(method/3),
+    dynamic(part/2),
+    dynamic(make/2),
+    dynamic(is_class/1),
+    dynamic(make/3),
+    dynamic(is_instance/2),
+    dynamic(is_instance/3),
+    dynamic(instance/3),
+    dynamic(class/3),
+    dynamic(superclass/2),
+    dynamic(is_father/2).
 
-% is_class verifica che la classe CN sia già esistente e blocca il 
-% backtracking
-% retractall Rimuove le informazioni     
-% esistenti relative alla classe da reinserire.
-
-def_class(ClassName, Parents) :-
-    is_class(ClassName), !, -
-    retractall(parts_in_class(_, _, ClassName)), 
-    retractall(father_class_of(_, ClassName)),  
-    is_a_set(Parents),
-    is_a_set(Parts),
-    are_slot_terms(CN, SVs),
-    are_parents(CN, Ps),
-    findall(Child, father_class_of(CN, Child), ChildrenCs),
-    my_maplist(c_creation_components, ChildrenCs, ChildrenParents, ChildrenBodies),
-    my_maplist(def_class, ChildrenCs, ChildrenParents, ChildrenBodies), !.
-    assert(class(ClassName, Parents, [])).
 
 def_class(ClassName, Parents, Parts) :-
     is_class(ClassName), !,
-    assert(class(ClassName, Parents, Parts)).
+    writeln("Classe gia' esistente"),fail.
+
+def_class(ClassName, Parents) :-
+    is_class(ClassName), !,
+    writeln("Classe gia' esistente"),fail.
+
+
+def_class(ClassName, Parents, Parts) :-
+    assertz(class(ClassName, Parents, Parts)).
+
+def_class(ClassName, Parents) :-
+    def_class(ClassName, Parents, []).
 
 field(FieldName, Value) :-
     Field =.. [FieldName, Value],
-    assert(Field).
+    assertz(Field).
 
 field(FieldName, Value, Type) :-
     Field =.. [FieldName, Value, Type],
-    assert(Field).
+    assertz(Field).
 
 
 method(MethodName, Arglist, Form) :-
     Method =.. [MethodName, Arglist, Form],
-    assert(Method).
+    assertz(Method).
 
 part(Field, Method) :-
     Part =.. [Field | Method],
-    assert(Part).
+    assertz(Part).
 
-%%%%%%%%%%%%%%%%%%%%%%% fino a qui tutto giusto (spero)
 make(InstanceName, ClassName) :-
-    is_instance(InstanceName, ClassName),
-    .
+    make(InstanceName, ClassName, []).
 
-_____________________% 2. Creazione di un'Istanza (make)
-% make(InstanceName, ClassName, Fields): Crea un'istanza di una classe
-% con i campi specificati.
-make(InstanceName, ClassName, Fields) :-
-    class(ClassName, Parents, Parts),
-    assert(instance(InstanceName, ClassName, Parents, Parts, Fields)).
-
-% make/2 � una versione semplificata di make/3 con una lista di campi vuota.
-make(Instance, Class) :-
-    make(Instance, Class, []).
-
-
-___________________
-
-% is_class(ClassName): Verifica se ClassName è il nome di una classe definita
 is_class(ClassName) :-
     class(ClassName, _, _).
 
-% is_instance(Instance): Verifica se Instance e' un'istanza di una
-% qualsiasi classe.
-is_instance(Value) :-
-    instance(Value, _, _).
+is_instance(InstanceName) :-
+    instance(InstanceName, _, _).
 
-% is_instance(Instance, ClassName): Verifica se Instance e' un'istanza
-% della classe ClassName.
-is_instance(Value, ClassName) :-
-    instance(Value, ClassName, _).
+is_instance(InstanceName, ClassName) :-
+    instance(InstanceName, ClassName, _).
+
+superclass(SuperClass, Class) :-
+    is_class(SuperClass),
+    is_class(Class),
+    is_father(Class, X),
+    same_class(SuperClass, X).
+
+same_class(X, X).
+
+is_father(Class, _) :-
+    class(Class, [], _), !.
+
+is_father(Class, Parent) :-
+    class(Class, [Parent | Rest], _),
+    is_father(Class, Rest).
+
+
