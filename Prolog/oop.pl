@@ -33,7 +33,6 @@ def_class(ClassName, Parents) :-
     is_class(ClassName), !,
     writeln("Classe gia' esistente"),fail.
 
-
 def_class(ClassName, Parents, Parts) :-
     assertz(class(ClassName, Parents, Parts)).
 
@@ -69,19 +68,22 @@ is_instance(InstanceName) :-
 is_instance(InstanceName, ClassName) :-
     instance(InstanceName, ClassName, _).
 
+
 superclass(SuperClass, Class) :-
-    is_class(SuperClass),
-    is_class(Class),
-    is_father(Class, X),
-    same_class(SuperClass, X).
+     is_father(SuperClass, Class).
 
-same_class(X, X).
+is_father([], Class) :- !.
 
-is_father(Class, _) :-
-    class(Class, [], _), !.
+is_father(SuperClass, Class) :-
+    class(Class,[SuperClass, Rest],  _), !.
 
-is_father(Class, Parent) :-
-    class(Class, [Parent | Rest], _),
-    is_father(Class, Rest).
+is_father(SuperClass, Class) :-
+    class(Class, [SuperClass],  _), !.
+
+is_father(SuperClass, Class) :-
+    class(Class, SuperClass,  _), !.
+
+
+
 
 
