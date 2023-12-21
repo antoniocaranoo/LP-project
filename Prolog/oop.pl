@@ -3,9 +3,10 @@
 %%%% Cantaluppi Camilla 894557
 %%%% Carano Antonio 902447
 
-% def_class(persona, [], [field(nome, 'anto'), method(talk, [], write("My
-% name is"))]).
-%def_class(studente, [persona], [field(matricola, 1234, integer)]).
+% def_class(persona, [], [field(nome, 'anto'), method(talk, [], write("My name is"))]).
+% def_class(studente, [persona], [field(matricola, 1234, integer)]).
+% def_class(bambino, [studente], [method(piange, [],
+% write("UUUUEEEE"))]).
 
 :-
     dynamic(def_class/3),
@@ -68,20 +69,41 @@ is_instance(InstanceName) :-
 is_instance(InstanceName, ClassName) :-
     instance(InstanceName, ClassName, _).
 
-
 superclass(SuperClass, Class) :-
-     is_father(SuperClass, Class).
+    is_class(SuperClass),
+    is_class(Class),
+    are_fathers(X, Class),
+    same_class(SuperClass, X).
 
-is_father([], Class) :- !.
+same_class(X, X).
 
-is_father(SuperClass, Class) :-
-    class(Class,[SuperClass, Rest],  _), !.
 
-is_father(SuperClass, Class) :-
-    class(Class, [SuperClass],  _), !.
+% Questa è la funzione principale da chiamare
+are_fathers(Child, AllParents) :-
+    are_fathers_group(Child, [], AllParents).
 
-is_father(SuperClass, Class) :-
-    class(Class, SuperClass,  _), !.
+% pregicato per raggruppare tutti i genitori e antenati,
+% evitando cicli e duplicati
+are_fathers_group(Child, Visited, AllParents) :-
+    (class(Child, ParentsList, _),
+     exclude(member(Visited), ParentsList, NewParents),
+     append(Visited, NewParents, UpdatedVisited),
+     find_all_ancestors(NewParents, UpdatedVisited, AncestorParents),
+     append(NewParents, AncestorParents, AllParents), !;
+     AllParents = Visited).
+
+% Trova tutti gli antenati per una lista di genitori
+find_all_ancestors([], _, []).
+find_all_ancestors([Parent|Rest], Visited, Ancestors) :-
+    are_fathers_group(Parent, Visited, ParentAncestors),
+    find_all_ancestors(Rest, Visited, RestAncestors),
+    append(ParentAncestors, RestAncestors, Ancestors),
+    !.
+
+
+
+
+
 
 
 
