@@ -30,12 +30,12 @@ def_class(ClassName, Parents, Parts) :-
     is_class(ClassName), !,
     writeln("Classe gia' esistente"),fail.
 
+def_class(ClassName, Parents, Parts) :-
+    assertz(class(ClassName, Parents, Parts)).
+
 def_class(ClassName, Parents) :-
     is_class(ClassName), !,
     writeln("Classe gia' esistente"),fail.
-
-def_class(ClassName, Parents, Parts) :-
-    assertz(class(ClassName, Parents, Parts)).
 
 def_class(ClassName, Parents) :-
     def_class(ClassName, Parents, []).
@@ -47,7 +47,6 @@ field(FieldName, Value) :-
 field(FieldName, Value, Type) :-
     Field =.. [FieldName, Value, Type],
     assertz(Field).
-
 
 method(MethodName, Arglist, Form) :-
     Method =.. [MethodName, Arglist, Form],
@@ -69,38 +68,72 @@ is_instance(InstanceName) :-
 is_instance(InstanceName, ClassName) :-
     instance(InstanceName, ClassName, _).
 
-superclass(SuperClass, Class) :-
-    is_class(SuperClass),
-    is_class(Class),
-    are_fathers(X, Class),
-    same_class(SuperClass, X).
+% mi restituisce una lista di soli metodi
+find_methods([], []).
 
-same_class(X, X).
+find_methods([method(MethodName, Args, Body) | Rest], [method(MethodName, Args, Body) | Tail]) :-
+    find_methods(Rest, Tail).
+
+find_methods([field(_, _) | Rest], MethList) :-
+    find_methods(Rest, MethList).
+
+find_methods([field(_, _, _) | Rest], MethList) :-
+    find_methods(Rest, MethList).
+
+% mi restituisce una lista di soli campi field)
+find_fields([], []).
+
+find_fields([field(FieldName, Value) | Rest], [field(FieldName, Value) | Tail]) :-
+    find_fields(Rest, Tail).
+
+find_fields([field(FieldName, Value, Type) | Rest], [field(FieldName, Value, Type) | Tail]) :-
+    find_fields(Rest, Tail).
+
+find_fields([method(_, _, _) | Rest], FieldList) :-
+    find_fields(Rest, FieldList).
+
+is_parts_in_class(Class, Parts) :-
+    class(Class, _, Parts).
 
 
-% Questa è la funzione principale da chiamare
-are_fathers(Child, AllParents) :-
-    are_fathers_group(Child, [], AllParents).
+% trova genitori e antenati
+% are_parents(Child, Parents) :-
 
-% pregicato per raggruppare tutti i genitori e antenati,
-% evitando cicli e duplicati
-are_fathers_group(Child, Visited, AllParents) :-
-    (   class(Child, ParentsList, _),
-        exclude(member(Visited), ParentsList, NewParents),
-        append(Visited, NewParents, UpdatedVisited),
-        find_all_ancestors(NewParents, UpdatedVisited, AncestorParents),
-        append(NewParents, AncestorParents, AllParents),
-        !
-    ;   AllParents = Visited
-    ).
 
-% Trova tutti gli antenati per una lista di genitori
-find_all_ancestors([], _, []).
-find_all_ancestors([Parent|Rest], Visited, Ancestors) :-
-    are_fathers_group(Parent, Visited, ParentAncestors),
-    find_all_ancestors(Rest, Visited, RestAncestors),
-    append(ParentAncestors, RestAncestors, Ancestors),
-    !.
+
+%%superclass(SuperClass, Class) :-
+%%    is_class(SuperClass),
+%%    is_class(Class),
+%%    are_fathers(X, Class),
+%%    same_class(SuperClass, X).
+%%
+%%same_class(X, X).
+
+
+%%%%%%%%%%%%%%%%%%%%%% CHAT GPT
+%%% Questa e' la funzione principale da chiamare
+%%are_fathers(Child, AllParents) :-
+%%    are_fathers_group(Child, [], AllParents).
+%%
+%%% pregicato per raggruppare tutti i genitori e antenati,
+%%% evitando cicli e duplicati
+%%are_fathers_group(Child, Visited, AllParents) :-
+%%    (class(Child, ParentsList, _),
+%%     exclude(member(Visited), ParentsList, NewParents),
+%%     append(Visited, NewParents, UpdatedVisited),
+%%     find_all_ancestors(NewParents, UpdatedVisited, AncestorParents),
+%%     append(NewParents, AncestorParents, AllParents), !;
+%%     AllParents = Visited).
+%%
+%%% Trova tutti gli antenati per una lista di genitori
+%%find_all_ancestors([], _, []).
+%%find_all_ancestors([Parent|Rest], Visited, Ancestors) :-
+%%    are_fathers_group(Parent, Visited, ParentAncestors),
+%%    find_all_ancestors(Rest, Visited, RestAncestors),
+%%    append(ParentAncestors, RestAncestors, Ancestors), !.
+
+%sub_set([FirstL], SecondL) :-
+
 
 
 
