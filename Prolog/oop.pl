@@ -31,7 +31,10 @@ def_class(ClassName, Parents, Parts) :-
     writeln("Classe gia' esistente"),fail.
 
 def_class(ClassName, Parents, Parts) :-
-    assertz(class(ClassName, Parents, Parts)).
+    are_parents(ClassName, Ancestors),
+    escludi(Parents, Ancestors, Relatives),
+    append(Parents, Relatives, AllParents),
+    assertz(class(ClassName, AllParents, Parts)).
 
 def_class(ClassName, Parents) :-
     is_class(ClassName), !,
@@ -100,10 +103,36 @@ are_parents(Child, AllParents) :-
 
 %DA FINIRE
 are_parents_finder(Child, Visited, AllParents) :-
-    class(Child, ParentsList, _).
+    class(Child, ParentsList, _),
+    escludi(Visited, ParentsList, NewParents),
+    append(Visited, NewParents, UpdatedVisited),
+    find_all_ancestors(NewParents, UpdatedVisited, AncestorParents),
+    append(NewParents, AncestorParents, AllParents), !;
+    AllParents = Visited.
+
+% Trova tutti gli antenati per una lista di genitori
+find_all_ancestors([], _, []).
+
+find_all_ancestors([Parent|Rest], Visited, Ancestors) :-
+    are_parents_finder(Parent, Visited, ParentAncestors),
+    find_all_ancestors(Rest, Visited, RestAncestors),
+    append(ParentAncestors, RestAncestors, Ancestors), !.
 
 
 
+% escludi(ElementiDaRimuovere, ListaOriginale, ListaRisultante). toglie
+% tutti gli elementi di una lista da un'altra, e restituisce una lista
+% senza quegli elementi.
+
+escludi(_, [], []).
+
+escludi(ElementiDaRimuovere, [Testa | Coda], [Testa | NewList]) :-
+    \+ member(Testa, ElementiDaRimuovere),
+    escludi(ElementiDaRimuovere, Coda, NewList), !.
+
+escludi(ElementiDaRimuovere, [Testa | Coda], NewList) :-
+    member(Testa, ElementiDaRimuovere),
+    escludi(ElementiDaRimuovere, Coda, NewList), !.
 
 
 
@@ -113,7 +142,7 @@ are_parents_finder(Child, Visited, AllParents) :-
 %%    are_fathers(X, Class),
 %%    same_class(SuperClass, X).
 %%
-%%same_class(X, X).
+   %%same_class(X, X).
 
 
 %%%%%%%%%%%%%%%%%%%%%% CHAT GPT
