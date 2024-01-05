@@ -1,181 +1,307 @@
-
+%%%% -*- Mode Prolog -*-
+%%%% oop.pl
 
 %%%% Cantaluppi Camilla 894557
 %%%% Carano Antonio 902447
 
-% def_class(persona, [], [field(nome, 'anto'), method(talk, [], write("My name is"))]).
-% def_class(studente, [persona], [field(matricola, 1234, integer)]).
-% def_class(bambino, [studente], [method(piange, [],
-% write("UUUUEEEE"))]).
-
 :-
-    dynamic(def_class/3),
-    dynamic(def_class/2),
-    dynamic(field/2),
-    dynamic(field/3),
-    dynamic(method/3),
-    dynamic(part/2),
-    dynamic(make/2),
-    dynamic(is_class/1),
-    dynamic(make/3),
-    dynamic(is_instance/2),
-    dynamic(is_instance/3),
-    dynamic(instance/3),
-    dynamic(class/3),
-    dynamic(superclass/2),
-    dynamic(is_father/2).
+	dynamic(is_class/1),
+	dynamic(c_creation_components/3),
+	dynamic(field_in_class/2),
+	dynamic(field_in_instance/2),
+	dynamic(father_class_of/2),
+	dynamic(instance_of/2),
+	dynamic(method_in_class/2),
+	dynamic(method_in_instance/2).
 
+def_class(ClassName, _, _) :-
+	is_class(ClassName), !,
+	fail.
 
 def_class(ClassName, Parents, Parts) :-
-    is_class(ClassName), !,
-    writeln("Classe gia' esistente"),fail.
+	is_a_set(Parents),
+	is_a_set(Parts),
+	are_parts(ClassName, Parts),
+	are_parents(ClassName, Parents),
+	assertz(is_class(ClassName)),
+	assertz(c_creation_components(ClassName, Parents, Parts)), !.
 
-def_class(ClassName, Parents, Parts) :-
-    are_parents(ClassName, Ancestors),
-    escludi(Parents, Ancestors, Relatives),
-    append(Parents, Relatives, AllParents),
-    assertz(class(ClassName, AllParents, Parts)).
+are_parents(_, []).
 
-def_class(ClassName, Parents) :-
-    is_class(ClassName), !,
-    writeln("Classe gia' esistente"),fail.
+are_parents(ClassName, [Parent | _]) :-
+	is_class(Parent),
+	is_superclass(ClassName, Parent), !, fail.
 
-def_class(ClassName, Parents) :-
-    def_class(ClassName, Parents, []).
+are_parents(ClassName, [Parent | Ps]) :-
+	is_class(Parent),
+	assertz(father_class_of(Parent, ClassName)),
+	is_inheritor(ClassName, Parent),
+	are_parents(ClassName, Ps), !.
 
-field(FieldName, Value) :-
-    Field =.. [FieldName, Value],
-    assertz(Field).
+is_inheritor(ClassName, P) :-
+	findall(field(FieldName, FieldValue, Type), field_in_class(field(FieldName, FieldValue, Type), P), Fields),
+	inherit_fields_from_supc(ClassName, Fields),
+	findall(method(MethodName, Args, RawBody), method_in_class(method(MethodName, Args, (RawBody)), P), ML),
+	inherit_methods_from_supc(ClassName, ML).
 
-field(FieldName, Value, Type) :-
-    Field =.. [FieldName, Value, Type],
-    assertz(Field).
+inherit_methods_from_supc(_, []).
 
-method(MethodName, Arglist, Form) :-
-    Method =.. [MethodName, Arglist, Form],
-    assertz(Method).
+inherit_methods_from_supc(ClassName, [method(MethodName, _, _) | Ms]) :-
+	method_in_class(method(MethodName, _, _), ClassName),
+	inherit_methods_from_supc(ClassName, Ms), !.
 
-part(Field, Method) :-
-    Part =.. [Field | Method],
-    assertz(Part).
+inherit_methods_from_supc(CN, [method(MN, Args, Body) | Ms]) :-
+	assertz(method_in_class(method(MN, Args, (Body)), CN)),
+	inherit_methods_from_supc(CN, Ms).
 
-make(InstanceName, ClassName) :-
-    make(InstanceName, ClassName, []).
+inherit_fields_from_supc(_, []) :- !.
 
-is_class(ClassName) :-
-    class(ClassName, _, _).
+% QUI CONTROLLA CHE IL TIPO NON SIA PIU' "AMPIO" DI QUELLO DELLA SUPERCLASSE
+inherit_fields_from_supc(CN, [field(FN, _, TypeSp) | Fields]) :-
+	field_in_class(field(FN, _, TypeCN), CN), !,			
+	check_type(TypeSp, TypeCN),
+	inherit_fields_from_supc(CN, Fields), !.
 
-is_instance(InstanceName) :-
-    instance(InstanceName, _, _).
-
-is_instance(InstanceName, ClassName) :-
-    instance(InstanceName, ClassName, _).
-
-% mi restituisce una lista di soli metodi
-find_methods([], []).
-
-find_methods([method(MethodName, Args, Body) | Rest], [method(MethodName, Args, Body) | Tail]) :-
-    find_methods(Rest, Tail).
-
-find_methods([field(_, _) | Rest], MethList) :-
-    find_methods(Rest, MethList).
-
-find_methods([field(_, _, _) | Rest], MethList) :-
-    find_methods(Rest, MethList).
-
-% mi restituisce una lista di soli campi field)
-find_fields([], []).
-
-find_fields([field(FieldName, Value) | Rest], [field(FieldName, Value) | Tail]) :-
-    find_fields(Rest, Tail).
-
-find_fields([field(FieldName, Value, Type) | Rest], [field(FieldName, Value, Type) | Tail]) :-
-    find_fields(Rest, Tail).
-
-find_fields([method(_, _, _) | Rest], FieldList) :-
-    find_fields(Rest, FieldList).
+% se inherit ecc non va a buon fine bisogna fallire la creazione della classe e
+% quindi fare un retractall di tutte le cose che sono state asserite per
+% la creazione della classe
 
 
+inherit_fields_from_supc(CN, [field(FN, FV, Type) | Fields]) :-
+	assertz(field_in_class(field(FN, FV, Type), CN)),
+	inherit_fields_from_supc(CN, Fields), !.
 
-% trova genitori e antenati
-are_parents(Child, AllParents) :-
-    are_parents_finder(Child, [], AllParents).
+% GESTIONE TYPE
+check_type(float, integer).
 
-%DA FINIRE
-are_parents_finder(Child, Visited, AllParents) :-
-    class(Child, ParentsList, _),
-    escludi(Visited, ParentsList, NewParents),
-    append(Visited, NewParents, UpdatedVisited),
-    find_all_ancestors(NewParents, UpdatedVisited, AncestorParents),
-    append(NewParents, AncestorParents, AllParents), !;
-    AllParents = Visited.
+check_type(numeric, float).
 
-% Trova tutti gli antenati per una lista di genitori
-find_all_ancestors([], _, []).
+check_type(numeric, integer).
 
-find_all_ancestors([Parent|Rest], Visited, Ancestors) :-
-    are_parents_finder(Parent, Visited, ParentAncestors),
-    find_all_ancestors(Rest, Visited, RestAncestors),
-    append(ParentAncestors, RestAncestors, Ancestors), !.
+% check_type(FieldSuperClass, FieldCurrentClass).
+check_type(TypeSp, TypeCN) :-
+	is_class(TypeSp),
+	is_class(TypeCN),
+	is_superclass(TypeSP, TypeCN).
 
+% INTEGER, REAL, STRING. LIST?
 
+is_type(X, integer) :-
+	integer(X).
 
-% escludi(ElementiDaRimuovere, ListaOriginale, ListaRisultante). toglie
-% tutti gli elementi di una lista da un'altra, e restituisce una lista
-% senza quegli elementi.
+is_type(X, float) :-
+	float(X).
 
-escludi(_, [], []).
+is_type(X, number) :-
+	number(X).
 
-escludi(ElementiDaRimuovere, [Testa | Coda], [Testa | NewList]) :-
-    \+ member(Testa, ElementiDaRimuovere),
-    escludi(ElementiDaRimuovere, Coda, NewList), !.
+is_type(X, string) :-
+	string(X).
 
-escludi(ElementiDaRimuovere, [Testa | Coda], NewList) :-
-    member(Testa, ElementiDaRimuovere),
-    escludi(ElementiDaRimuovere, Coda, NewList), !.
+is_type(X, atom) :-
+	atom(X).
 
+is_type(X, compound) :-
+	compound(X).
 
+is_type(X, DefinedClass) :-
+	is_instance(X, DefinedClass).
 
-%%superclass(SuperClass, Class) :-
-%%    is_class(SuperClass),
-%%    is_class(Class),
-%%    are_fathers(X, Class),
-%%    same_class(SuperClass, X).
-%%
-   %%same_class(X, X).
+% make(IN, CN, Slots)
+% cosa passare se l'istanza non esiste ancora?
+%is_type(, DefinedClass) :-
+%	is_instance(X, DefinedClass).
 
+are_parts(_, []) :- !.
 
-%%%%%%%%%%%%%%%%%%%%%% CHAT GPT
-%%% Questa e' la funzione principale da chiamare
-%%are_fathers(Child, AllParents) :-
-%%    are_fathers_group(Child, [], AllParents).
-%%
-%%% pregicato per raggruppare tutti i genitori e antenati,
-%%% evitando cicli e duplicati
-%%are_fathers_group(Child, Visited, AllParents) :-
-%%     class(Child, ParentsList, _),
-%%     exclude(member(Visited), ParentsList, NewParents),
-%%     append(Visited, NewParents, UpdatedVisited),
-%%     find_all_ancestors(NewParents, UpdatedVisited, AncestorParents),
-%%     append(NewParents, AncestorParents, AllParents), !;
-%%     AllParents = Visited.
-%%
-%%% Trova tutti gli antenati per una lista di genitori
-%%find_all_ancestors([], _, []).
-%%find_all_ancestors([Parent|Rest], Visited, Ancestors) :-
-%%    are_fathers_group(Parent, Visited, ParentAncestors),
-%%    find_all_ancestors(Rest, Visited, RestAncestors),
-%%    append(ParentAncestors, RestAncestors, Ancestors), !.
+are_parts(CN, [method(MN, ArgL, Form) | Parts]) :-
+	is_method_term(CN, method(MN, ArgL, Form)),
+	are_parts(CN, Parts), !.
 
-%sub_set([FirstL], SecondL) :-
+are_parts(CN, [field(FN, FV, Type) | Parts]) :-
+	is_type(FV, Type),
+	asserta(field_in_class(field(FN, FV, Type), CN)),	
+	are_parts(CN, Parts), !.
 
+are_parts(CN, [field(FN,FV) | Parts]) :-
+	asserta(field_in_class(field(FN, FV, _), CN)),	
+	are_parts(CN, Parts), !.
 
+is_instance(instance(IN, CN, _)) :-
+	instance_of(IN, CN).
 
+is_instance(instance(IN, CN, Attrs), SCN) :-
+	instance_of(IN, CN),
+	is_superclass(SCN, CN),
+	findall(Term, field_in_instance(Term, IN), Attrs).
 
+inst(IN, instance(IN, CN, Attrs)) :-
+	instance_of(IN, CN),
+	findall(Term, field_in_instance(Term, IN), Attrs).
 
+% is_superclass(SuperClasse, Sottoclasse).
+is_superclass(SuperClass, SubClass) :-
+	father_class_of(X, SubClass),
+	is_superclass(SuperClass, X).
 
+is_superclass(SuperClass, SubClass) :-
+	father_class_of(SuperClass, SubClass), !.
 
+is_method_term(ClassName, method(MN, Args, RawBody)) :-
+	is_list(Args),
+	asserta(method_in_class(method(MN, Args, RawBody), ClassName)).
 
+execute_method(MN, Args, Instance) :-
+	inst(IN, Instance),
+	execute_method(MN, Args, IN), !.
 
+execute_method(MN, Args, IN) :-
+	method_in_instance(method(MN, Args, Body), IN),
+	call(Body), !.
 
+replace((Term, OtherTerms), Keyword, Rep, (FirstTermReplaced, OtherTermsReplaced)) :-
+	replace(Term, Keyword, Rep, FirstTermReplaced),
+	replace(OtherTerms, Keyword, Rep, OtherTermsReplaced), !.
 
+replace(Term, Keyword, Rep, TermReplaced) :-
+    Term =.. [F | Args],
+	replace_args(Args, Keyword, Rep, ReplacedArgs), !,
+    TermReplaced =.. [F | ReplacedArgs].
+
+replace_args([], _, _, []).
+
+replace_args([Arg | Rest], Keyword, Rep, [Rep | ReplacedRest]) :-
+	Arg == Keyword, !,
+	replace_args(Rest, Keyword, Rep, ReplacedRest).
+
+replace_args([Arg | Rest], Keyword, Rep, [Arg | ReplacedRest]) :-
+	var(Arg), !,
+	replace_args(Rest, Keyword, Rep, ReplacedRest).
+
+replace_args([Arg | Rest], Keyword, Rep, [Arg | ReplacedRest]) :-
+	Arg =.. [_ | []], !,
+	replace_args(Rest, Keyword, Rep, ReplacedRest).
+
+replace_args([Term | []], Keyword, Rep, [TermReplaced]) :- !,
+	replace(Term, Keyword, Rep, TermReplaced).
+
+replace_args([Term | OtherTerms], Keyword, Rep, [TermReplaced | OtherTermsReplaced]) :- !,
+	replace(Term, Keyword, Rep, TermReplaced),
+	replace_args(OtherTerms, Keyword, Rep, OtherTermsReplaced).
+
+make(Instance, ClassName) :-
+	make(Instance, ClassName, []).
+
+make(X, ClassName, Parts) :-
+	var(X), !,
+	nonvar(ClassName),
+	nonvar(Parts),
+	make(oopinst, ClassName, Parts),
+	inst(oopinst, X).
+
+make(Instance, ClassName, Parts) :-
+	instance_of(Instance, _), !,
+	retractall(instance_of(Instance, _)),
+	retractall(field_in_instance(_, Instance)),
+	retractall(method_in_instance(_, Instance)),
+	make(Instance, ClassName, Parts).
+
+make(Instance, ClassName, Parts) :-
+	is_class(ClassName),
+	are_parts_in_instance(Instance, ClassName, Parts),
+	assertz(instance_of(Instance, ClassName)), !.
+
+are_parts_in_instance(Instance, CN, Parts) :-
+	is_a_set(Parts),
+	findall(field(FN, FV, Type), field_in_class(field(FN, FV, Type), CN), FFC),
+	findall(method(MN, Args, Body), method_in_class(method(MN, Args, Body), CN), MFC),
+	are_parts_in_instance(Instance, FFC, MFC, Parts).
+
+are_parts_in_instance(_, [], [], []) :- !.
+
+are_parts_in_instance(Instance, [field(FN,_,Type)|OtherPartsFC], MethodsFC, PartsToOverride) :-
+	list_member(FN=NFV, PartsToOverride),
+	is_type(NFV, Type),
+	asserta(field_in_instance(field(FN, NFV, Type), Instance)),
+	list_without_el(FN=NFV, PartsToOverride, OtherPartsToOverride),
+	are_parts_in_instance(Instance, OtherPartsFC, MethodsFC, OtherPartsToOverride), !.
+
+are_parts_in_instance(Instance, [field(FN, FV, Type)|OtherPartsFC], MethodsFC, PartsToOverride) :-
+	asserta(field_in_instance(field(FN, FV, Type), Instance)),
+	are_parts_in_instance(Instance, OtherPartsFC, MethodsFC, PartsToOverride), !.
+
+are_parts_in_instance(Instance, PartsFC, [method(MN,Args,Body)|OtherParts], PartsToOverride) :-
+	asserta(field_in_instance(method(MN, Args, Body), Instance)),
+	is_instance_method(Instance, method(MN, Args, Body)),
+	are_parts_in_instance(Instance, PartsFC, OtherParts, PartsToOverride), !.
+
+is_instance_method(IN, method(MN,Args,RawBody)) :-
+	is_list(Args),
+	method_in_instance(method(MN,_,_), IN), !,
+	retractall(method_in_instance(method(MN, _, _), IN)),
+	replace(RawBody, this, IN, Body),
+	asserta(method_in_instance(method(MN, Args, Body), IN)).
+
+is_instance_method(IN, method(MN,Args,RawBody)) :-
+	is_list(Args),
+	replace(RawBody, this, IN, Body),
+	MSig =.. [MN, Instance | Args],
+	asserta(method_in_instance(method(MN, Args, Body), IN)),
+	asserta((MSig :- (MSig) =.. [MN, Instance | Args], execute_method(MN, Args, Instance), !)), !.
+
+list_member(X, [X]) :- !.
+
+list_member(X, [X|_]) :- !.
+
+list_member(X, [_|Xs]) :-
+	list_member(X, Xs), !.
+
+is_a_set([]).
+
+is_a_set([(A,B)|Rest]) :-
+	list_member((A,B),Rest), !, fail.
+
+is_a_set([(_,_)|Rest]) :-
+	is_a_set(Rest), !.
+
+is_a_set([A|Rest]) :-
+	list_member(A,Rest), !, fail.
+
+is_a_set([_|Rest]) :-
+	is_a_set(Rest), !.
+
+field(Instance, FN, FV) :-
+	inst(IN, Instance), !,
+	field_in_instance(field(FN, FV, _), IN).
+
+field(IN, FN, FV) :-
+	field_in_instance(field(FN, FV, _), IN), !.
+
+fieldx(IN, [FN|FNs], FV) :-
+	field(IN, FN, NIN),
+	fieldx(NIN, FNs, FV), !.
+
+fieldx(IN, [FN], FV) :-
+	field(IN, FN, FV), !.
+
+list_without_el(_, [], []).
+
+list_without_el(A, [A|C], E) :-
+	list_without_el(A, C, E), !.
+
+list_without_el(A, [B|C], [B|E]) :-
+	list_without_el(A, C, E), !.
+
+my_maplist(_,[],[],[]).
+
+my_maplist(P,[A|As],[B|Bs],[C|Cs]) :-
+	call(P,A,B,C),
+	my_maplist(P,As,Bs,Cs).
+
+explode_parts([], []).
+
+explode_parts([Part|Parts], [(F,N)|Ls]):-
+	Part =.. [F,N|_],
+	explode_parts(Parts, Ls).
+
+%%%% end of file -- oop.pl

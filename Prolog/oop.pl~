@@ -31,7 +31,11 @@ def_class(ClassName, Parents, Parts) :-
     writeln("Classe gia' esistente"),fail.
 
 def_class(ClassName, Parents, Parts) :-
-    assertz(class(ClassName, Parents, Parts)).
+    assertz(is_class(ClassName)),
+    assertz(class(ClassName, Parents, Parts)),
+    is_a_set(Parents),
+    is_a_set(Parts),
+    are_parts(ClassName, Parts).
 
 def_class(ClassName, Parents) :-
     is_class(ClassName), !,
@@ -67,7 +71,22 @@ is_instance(InstanceName) :-
 
 is_instance(InstanceName, ClassName) :-
     instance(InstanceName, ClassName, _).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+are_parts(_, []) :- !.
 
+are_parts(ClassName, [method(MethodName, Args, Body) | RestParts]) :-
+    is_method(ClassName, method(MethodName, Args, Body)),
+    are_parts(ClassName, RestParts), !.
+
+are_parts(ClassName, [field(FieldName, Value), RestParts]) :-
+    asserta(field_value_in_class(field(FieldName, Value), ClassName)),
+    are_parts(ClassName, RestParts), !.
+
+is_method(ClassName, method(MethodName, Args, Body)) :-
+    is_list(Args),
+    asserta(method_inthe_class(ClassName, method(MethodName, Args, Body))).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % mi restituisce una lista di soli metodi
 find_methods([], []).
 
@@ -80,7 +99,7 @@ find_methods([field(_, _) | Rest], MethList) :-
 find_methods([field(_, _, _) | Rest], MethList) :-
     find_methods(Rest, MethList).
 
-% mi restituisce una lista di soli campi field)
+% mi restituisce una lista di soli campi field
 find_fields([], []).
 
 find_fields([field(FieldName, Value) | Rest], [field(FieldName, Value) | Tail]) :-
@@ -92,13 +111,12 @@ find_fields([field(FieldName, Value, Type) | Rest], [field(FieldName, Value, Typ
 find_fields([method(_, _, _) | Rest], FieldList) :-
     find_fields(Rest, FieldList).
 
-
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % trova genitori e antenati
 are_parents(Child, AllParents) :-
     are_parents_finder(Child, [], AllParents).
 
-%DA FINIRE
+% raggruppa genitori e antenati evitando duplicati e cicli
 are_parents_finder(Child, Visited, AllParents) :-
     class(Child, ParentsList, _),
     escludi(Visited, ParentsList, NewParents),
@@ -125,7 +143,6 @@ escludi(_, [], []).
 
 escludi(ElementiDaRimuovere, [Testa | Coda], [Testa | NewList]) :-
     \+ member(Testa, ElementiDaRimuovere),
-
     escludi(ElementiDaRimuovere, Coda, NewList), !.
 
 escludi(ElementiDaRimuovere, [Testa | Coda], NewList) :-
@@ -167,7 +184,16 @@ escludi(ElementiDaRimuovere, [Testa | Coda], NewList) :-
 
 %sub_set([FirstL], SecondL) :-
 
+inherits(ClassName, []) :-
+    asserta(class(ClassName, _, Parts)).
 
+inherits(ClassName, [P | RestParents], [InheritedParts | RestParts]) :-
+    class(P, _, Pparts),
+    find_methods(Pparts, Pmethods),
+    find_fields(Pparts, Pfields),
+    append(Pmethods, Pfields, InheritedParts),
+    asserta(class(ClassName, _, InheritedParts)),
+    inherits(ClassName, RestParents, RestParts).
 
 
 
