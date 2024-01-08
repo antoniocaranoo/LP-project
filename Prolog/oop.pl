@@ -26,6 +26,20 @@ def_class(ClassName, Parents, Parts) :-
 	assertz(is_class(ClassName)),
 	assertz(c_creation_components(ClassName, Parents, Parts)), !.
 
+is_a_set([]).
+
+is_a_set([(A,B)|Rest]) :-
+	list_member((A,B),Rest), !, fail.
+
+is_a_set([(_,_)|Rest]) :-
+	is_a_set(Rest), !.
+
+is_a_set([A|Rest]) :-
+	list_member(A,Rest), !, fail.
+
+is_a_set([_|Rest]) :-
+	is_a_set(Rest), !.
+
 are_parents(_, []).
 
 are_parents(ClassName, [Parent | _]) :-
@@ -50,26 +64,26 @@ inherit_methods_from_supc(ClassName, [method(MethodName, _, _) | Ms]) :-
 	method_in_class(method(MethodName, _, _), ClassName),
 	inherit_methods_from_supc(ClassName, Ms), !.
 
-inherit_methods_from_supc(CN, [method(MN, Args, Body) | Ms]) :-
-	assertz(method_in_class(method(MN, Args, (Body)), CN)),
-	inherit_methods_from_supc(CN, Ms).
+inherit_methods_from_supc(ClassName, [method(MN, Args, Body) | Ms]) :-
+	assertz(method_in_class(method(MN, Args, (Body)), ClassName)),
+	inherit_methods_from_supc(ClassName, Ms).
 
 inherit_fields_from_supc(_, []) :- !.
 
 % QUI CONTROLLA CHE IL TIPO NON SIA PIU' "AMPIO" DI QUELLO DELLA SUPERCLASSE
-inherit_fields_from_supc(CN, [field(FN, _, TypeSp) | Fields]) :-
-	field_in_class(field(FN, _, TypeCN), CN), !,			
+inherit_fields_from_supc(ClassName, [field(FN, _, TypeSp) | Fields]) :-
+	field_in_class(field(FN, _, TypeCN), ClassName), !,			
 	check_type(TypeSp, TypeCN),
-	inherit_fields_from_supc(CN, Fields), !.
+	inherit_fields_from_supc(ClassName, Fields), !.
 
 % se inherit ecc non va a buon fine bisogna fallire la creazione della classe e
 % quindi fare un retractall di tutte le cose che sono state asserite per
 % la creazione della classe
 
 
-inherit_fields_from_supc(CN, [field(FN, FV, Type) | Fields]) :-
-	assertz(field_in_class(field(FN, FV, Type), CN)),
-	inherit_fields_from_supc(CN, Fields), !.
+inherit_fields_from_supc(ClassName, [field(FieldName, FieldValue, Type) | Fields]) :-
+	assertz(field_in_class(field(FieldName, FieldValue, Type), ClassName)),
+	inherit_fields_from_supc(ClassName, Fields), !.
 
 % GESTIONE TYPE
 check_type(float, integer).
@@ -78,11 +92,14 @@ check_type(numeric, float).
 
 check_type(numeric, integer).
 
+check_type(X, X).
+
+
 % check_type(FieldSuperClass, FieldCurrentClass).
 check_type(TypeSp, TypeCN) :-
 	is_class(TypeSp),
 	is_class(TypeCN),
-	is_superclass(TypeSP, TypeCN).
+	is_superclass(TypeCN, TypeSp).
 
 % INTEGER, REAL, STRING. LIST?
 
@@ -96,7 +113,7 @@ is_type(X, number) :-
 	number(X).
 
 is_type(X, string) :-
-	string(X).
+	string(X).	
 
 is_type(X, atom) :-
 	atom(X).
@@ -105,7 +122,7 @@ is_type(X, compound) :-
 	compound(X).
 
 is_type(X, DefinedClass) :-
-	is_instance(X, DefinedClass).
+	inst(X, instance(_, DefinedClass, _)).
 
 % make(IN, CN, Slots)
 % cosa passare se l'istanza non esiste ancora?
@@ -114,30 +131,30 @@ is_type(X, DefinedClass) :-
 
 are_parts(_, []) :- !.
 
-are_parts(CN, [method(MN, ArgL, Form) | Parts]) :-
-	is_method_term(CN, method(MN, ArgL, Form)),
-	are_parts(CN, Parts), !.
+are_parts(ClassName, [method(MN, ArgL, Form) | Parts]) :-
+	is_method_term(ClassName, method(MN, ArgL, Form)),
+	are_parts(ClassName, Parts), !.
 
-are_parts(CN, [field(FN, FV, Type) | Parts]) :-
+are_parts(ClassName, [field(FN, FV, Type) | Parts]) :-
 	is_type(FV, Type),
-	asserta(field_in_class(field(FN, FV, Type), CN)),	
-	are_parts(CN, Parts), !.
+	asserta(field_in_class(field(FN, FV, Type), ClassName)),	
+	are_parts(ClassName, Parts), !.
 
-are_parts(CN, [field(FN,FV) | Parts]) :-
-	asserta(field_in_class(field(FN, FV, _), CN)),	
-	are_parts(CN, Parts), !.
+are_parts(ClassName, [field(FN, FV) | Parts]) :-
+	asserta(field_in_class(field(FN, FV, _), ClassName)),	
+	are_parts(ClassName, Parts), !.
 
-is_instance(instance(IN, CN, _)) :-
-	instance_of(IN, CN).
+is_instance(instance(Instance, ClassName, _)) :-
+	instance_of(Instance, ClassName).
 
-is_instance(instance(IN, CN, Attrs), SCN) :-
-	instance_of(IN, CN),
-	is_superclass(SCN, CN),
-	findall(Term, field_in_instance(Term, IN), Attrs).
+is_instance(instance(Instance, ClassName, Attrs), SCN) :-
+	instance_of(Instance, ClassName),
+	is_superclass(SCN, ClassName),
+	findall(Term, field_in_instance(Term, Instance), Attrs).
 
-inst(IN, instance(IN, CN, Attrs)) :-
-	instance_of(IN, CN),
-	findall(Term, field_in_instance(Term, IN), Attrs).
+inst(Instance, instance(Instance, ClassName, Attrs)) :-
+	instance_of(Instance, ClassName),
+	findall(Term, field_in_instance(Term, Instance), Attrs).
 
 % is_superclass(SuperClasse, Sottoclasse).
 is_superclass(SuperClass, SubClass) :-
@@ -255,20 +272,6 @@ list_member(X, [X|_]) :- !.
 
 list_member(X, [_|Xs]) :-
 	list_member(X, Xs), !.
-
-is_a_set([]).
-
-is_a_set([(A,B)|Rest]) :-
-	list_member((A,B),Rest), !, fail.
-
-is_a_set([(_,_)|Rest]) :-
-	is_a_set(Rest), !.
-
-is_a_set([A|Rest]) :-
-	list_member(A,Rest), !, fail.
-
-is_a_set([_|Rest]) :-
-	is_a_set(Rest), !.
 
 field(Instance, FN, FV) :-
 	inst(IN, Instance), !,
