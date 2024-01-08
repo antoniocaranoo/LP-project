@@ -28,16 +28,16 @@ def_class(ClassName, Parents, Parts) :-
 
 is_a_set([]).
 
-is_a_set([(A,B)|Rest]) :-
-	list_member((A,B),Rest), !, fail.
+is_a_set([(A, B) | Rest]) :-
+	list_member((A, B), Rest), !, fail.
 
-is_a_set([(_,_)|Rest]) :-
+is_a_set([(_, _) | Rest]) :-
 	is_a_set(Rest), !.
 
-is_a_set([A|Rest]) :-
-	list_member(A,Rest), !, fail.
+is_a_set([A | Rest]) :-
+	list_member(A, Rest), !, fail.
 
-is_a_set([_|Rest]) :-
+is_a_set([_ | Rest]) :-
 	is_a_set(Rest), !.
 
 are_parents(_, []).
@@ -236,30 +236,31 @@ are_parts_in_instance(Instance, CN, Parts) :-
 
 are_parts_in_instance(_, [], [], []) :- !.
 
-are_parts_in_instance(Instance, [field(FN,_,Type)|OtherPartsFC], MethodsFC, PartsToOverride) :-
+% CI VA LO SPAZIO TRA FN = NFV???
+are_parts_in_instance(Instance, [field(FN, _, Type) | OtherPartsFC], MethodsFC, PartsToOverride) :-
 	list_member(FN=NFV, PartsToOverride),
 	is_type(NFV, Type),
 	asserta(field_in_instance(field(FN, NFV, Type), Instance)),
 	list_without_el(FN=NFV, PartsToOverride, OtherPartsToOverride),
 	are_parts_in_instance(Instance, OtherPartsFC, MethodsFC, OtherPartsToOverride), !.
 
-are_parts_in_instance(Instance, [field(FN, FV, Type)|OtherPartsFC], MethodsFC, PartsToOverride) :-
+are_parts_in_instance(Instance, [field(FN, FV, Type) | OtherPartsFC], MethodsFC, PartsToOverride) :-
 	asserta(field_in_instance(field(FN, FV, Type), Instance)),
 	are_parts_in_instance(Instance, OtherPartsFC, MethodsFC, PartsToOverride), !.
 
-are_parts_in_instance(Instance, PartsFC, [method(MN,Args,Body)|OtherParts], PartsToOverride) :-
+are_parts_in_instance(Instance, PartsFC, [method(MN, Args, Body) | OtherParts], PartsToOverride) :-
 	asserta(field_in_instance(method(MN, Args, Body), Instance)),
 	is_instance_method(Instance, method(MN, Args, Body)),
 	are_parts_in_instance(Instance, PartsFC, OtherParts, PartsToOverride), !.
 
-is_instance_method(IN, method(MN,Args,RawBody)) :-
+is_instance_method(IN, method(MN, Args, RawBody)) :-
 	is_list(Args),
-	method_in_instance(method(MN,_,_), IN), !,
+	method_in_instance(method(MN, _, _), IN), !,
 	retractall(method_in_instance(method(MN, _, _), IN)),
 	replace(RawBody, this, IN, Body),
 	asserta(method_in_instance(method(MN, Args, Body), IN)).
 
-is_instance_method(IN, method(MN,Args,RawBody)) :-
+is_instance_method(IN, method(MN, Args, RawBody)) :-
 	is_list(Args),
 	replace(RawBody, this, IN, Body),
 	MSig =.. [MN, Instance | Args],
@@ -268,9 +269,9 @@ is_instance_method(IN, method(MN,Args,RawBody)) :-
 
 list_member(X, [X]) :- !.
 
-list_member(X, [X|_]) :- !.
+list_member(X, [X | _]) :- !.
 
-list_member(X, [_|Xs]) :-
+list_member(X, [_ | Xs]) :-
 	list_member(X, Xs), !.
 
 field(Instance, FN, FV) :-
@@ -280,7 +281,7 @@ field(Instance, FN, FV) :-
 field(IN, FN, FV) :-
 	field_in_instance(field(FN, FV, _), IN), !.
 
-fieldx(IN, [FN|FNs], FV) :-
+fieldx(IN, [FN | FNs], FV) :-
 	field(IN, FN, NIN),
 	fieldx(NIN, FNs, FV), !.
 
@@ -289,22 +290,22 @@ fieldx(IN, [FN], FV) :-
 
 list_without_el(_, [], []).
 
-list_without_el(A, [A|C], E) :-
+list_without_el(A, [A | C], E) :-
 	list_without_el(A, C, E), !.
 
-list_without_el(A, [B|C], [B|E]) :-
+list_without_el(A, [B | C], [B | E]) :-
 	list_without_el(A, C, E), !.
 
-my_maplist(_,[],[],[]).
+my_maplist(_, [], [], []).
 
-my_maplist(P,[A|As],[B|Bs],[C|Cs]) :-
-	call(P,A,B,C),
-	my_maplist(P,As,Bs,Cs).
+my_maplist(P, [A | As], [B | Bs], [C | Cs]) :-
+	call(P, A, B, C),
+	my_maplist(P, As, Bs, Cs).
 
 explode_parts([], []).
 
-explode_parts([Part|Parts], [(F,N)|Ls]):-
-	Part =.. [F,N|_],
+explode_parts([Part | Parts], [(F, N) | Ls]):-
+	Part =.. [F, N | _],
 	explode_parts(Parts, Ls).
 
 %%%% end of file -- oop.pl
