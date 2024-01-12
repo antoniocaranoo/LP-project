@@ -32,9 +32,6 @@
                   (build-parts part) parents)))
        class-name)))
 
-;(defun inherit-from-p (a b)
-;  T
-;)
 
 ;;; IS-CLASS
 (defun is-class (class-name)
@@ -132,37 +129,74 @@
 
     (if (null s-parent-l)
 	    c-input-l
-      (parts-to-be-inherited (cddr s-input-l) 
-			     (cons (field-remover (car s-input-l)   
-					   (car s-parent-l))
-            (method-replacer (cadr s-input-l) (cdr s-parent-l)))
-			     c-input-l))))
+        (cond ((= (count-elements (caar s-parent-l)) 2)
+              (parts-to-be-inherited (cddr s-input-l) 
+                (cons (field-remover (car s-input-l)   
+		             NIL)
+                (method-replacer (cadr s-input-l) (car s-parent-l)))
+                c-input-l))
 
+                ((and (= (count-elements (caar s-parent-l)) 3) (null (cdr s-parent-l)))
+                (parts-to-be-inherited (cddr s-input-l) 
+                (cons (field-remover (car s-input-l)   
+                 (car s-parent-l))
+                (method-replacer (cadr s-input-l) NIL))
+                c-input-l))
+
+                (t (parts-to-be-inherited (cddr s-input-l) 
+                  (cons (field-remover (car s-input-l)   
+		                (car s-parent-l))
+                (method-replacer (cadr s-input-l) (cdr s-parent-l)))
+                 c-input-l))))))
+
+;;; COUNT-ELEMENTS conta gli elementi di una lista
+(defun count-elements (item)
+  "Count the number of elements in a list or a dotted pair."
+  (cond ((null item) 0)  ; End of a regular list
+        ((not (consp item)) 1)  ; Single element (non-list)
+        ((null (cdr item)) 1)  ; Single cons cell with NIL as cdr
+        ((not (consp (cdr item))) 2)  ; Dotted pair
+        (t (+ 1 (count-elements (cdr item))))))  ; Regular list element
+
+
+;************************************
 
 ;;; FIELD-REMOVER
-;ogni field nella superclasse, ricorsivamente, viene rimosso se ridefinito dalla sottoclasse
-(defun field-remover (field-list s-parent-l)
-  (if (null s-parent-l)
-      NIL
-    (cond ((equal (caar field-list) (caar s-parent-l))
-      (if (check-type-in-subclass (second (car field-list)) (cddr (car field-list)) (cddr (car s-parent-l)))
-        (field-remover (cdr field-list) (cdr s-parent-l))
-        (error "Il valore indicato non rispetta il tipo specificato.")))
-      (t (cons (car s-parent-l) (field-remover field-list (cdr s-parent-l)))))))
+(defun field-remover (new-list old-list)
+  (controllo-tipo (cadr (remove-and-find-matches old-list new-list)))
+  (car (remove-and-find-matches old-list new-list))
+)
 
+;;; REMOVE-AND-FIND-MATCHES 
+; trova duplicati in una lista
+; restituisce una lista dove il car e' una lista con tutti gli elementi che appartengono alla prima lista ma NON appartengono alla seconda, e il cdr e' una lista contenenti tutte le coppie uguali 
+(defun remove-and-find-matches (list-a list-b)
+  (match-helper list-a list-b nil nil))
 
+(defun match-helper (list-a list-b acc matches)
+  (if (null list-a)
+      (list (reverse acc) (reverse matches))
+      (let* ((current (first list-a))
+             (rest (rest list-a))
+             (match (find-if (lambda (item) (equal (first current) (first item))) list-b)))
+        (if match
+            (match-helper rest list-b acc (cons (list current match) matches))
+            (match-helper rest list-b (cons current acc) matches)))))
+
+;;; CONTROLLO-TIPO
+;prende in inpput una lista di coppie, ogni coppia e' formata da due liste ((name value type) (name value type))
+(defun controllo-tipo (list)
+  (if (null list)
+    nil
+    (if  (check-type-in-subclass (cadr (cadar list)) (cddr (cadar list)) (cddaar list))
+      (controllo-tipo (cdr list))
+      (error "Sottotipo piu' ampio del supertipo, non viene rispettata la gerarchia tra tipi.")))) ;;;;;;;;;; MIGLIORA FRASE ERRORE
 
 ;;; METHOD-REPLACER
-; controlla se due campi method hanno lo stesso nome, se si mantiene quello della sottoclasse, se no restituisce i metodi non comuni
-(defun method-replacer (method-list s-parent-l)
-  (if (null method-list)
-    (cons s-parent-l nil)
-    (if (null s-parent-l)
-        NIL
-        (cond ((equal (caar method-list) (caar s-parent-l))
-            (method-replacer method-list (cdr s-parent-l)))
-            (t (cons (car s-parent-l) (method-replacer method-list (cdr s-parent-l))))))))
+(defun method-replacer (new-list old-list)
+  (car (remove-and-find-matches old-list new-list)))
 
+;************************************
 
 
 ;;; CHECK-TYPE-IN-SUBCLASS
@@ -175,7 +209,7 @@
           (if (typep value typeSuper) 
             T
           (NIL))) 
-        (t (error "Sottotipo piu' ampio del supertipo, non viene rispettata la gerarchia tra tipi."))))       ;;;;;;;;;;;;;;;, CORREGGI ERROREEEEEEEE
+        (t NIL)))       
 
 
 ;;; REWRITE-METHOD
