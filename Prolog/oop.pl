@@ -99,7 +99,7 @@ check_type(X, X).
 check_type(TypeSp, TypeCN) :-
 	is_class(TypeSp),
 	is_class(TypeCN),
-	is_superclass(TypeCN, TypeSp).
+	is_superclass(TypeSp, TypeCN).
 
 % INTEGER, REAL, STRING. LIST?
 
