@@ -250,7 +250,7 @@ field-value della classe da istanziare."))
 ;;; VALID-FIELD-CHECK
 ; risponde T se pairs-l e' NULL quindi se lo abbiamo controllato tutto 
 (defun valid-field-check (pairs-l class-field-l)
-  (if (and (null (car (remove-and-find-matches pairs-l class-field-l))) 
+  (if (and (null (caar (remove-and-find-matches pairs-l class-field-l))) 
         (controllo-tipo (cadr ((remove-and-find-matches pairs-l class-field-l)))))
       T
       NIL))
