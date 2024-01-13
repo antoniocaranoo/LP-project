@@ -237,6 +237,32 @@ field-value della classe da istanziare."))
 					    (list (list (process-field field-value)))
 					    (list class-name)))))))
 
+;;; FORM-COUPLES
+(defun form-couples (field-l)
+    (if (and (symbolp (car field-l)) (= (length field-l) 2))
+      (list field-l)
+        (cons (list (first field-l) (second field-l)) (form-couples (cddr field-l)))))
+
+;;; PROCESS-FIELD-MAKE
+(defun process-field-make (field-l)        
+	(if (null field-l) 
+      NIL
+
+      (if (= (length (car field-l)) 2)
+         ((cond ((= (list-length field-l) 1)
+             (cons (car field-l) (cons NIL T)))
+           ((= (list-length field-l) 2)
+    		      (cons (car field-l)
+    				  (cons (second field-l) T)))
+          ((= (list-length field-l) 3)
+             (if (check-types-in-field (cadr field-l) (caddr field-l))
+                  (cons (car field-l) (cons (second field-l) (third field-l)))
+          (error "Il valore indicato non rispetta il tipo specificato.")))
+          (t (process-field-make (cdr field-l))))))
+  )
+
+       
+)
 
 ;;; VALID-FIELD-CHECK
 ; risponde T se pairs-l e' NULL quindi se lo abbiamo controllato tutto 
