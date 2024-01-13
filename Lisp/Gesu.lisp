@@ -72,7 +72,7 @@
 				    (cdr methods-l))))
 
 ;;; PROCESS-FIELD
-(defun process-field (field-l)        ;(NAME "Eve") (AGE 21 INTEGER)
+(defun process-field (field-l)        
 	(cond ((null field-l)
 		NIL)
 	 ((= (list-length field-l) 1)
@@ -159,8 +159,6 @@
         (t (+ 1 (count-elements (cdr item))))))  ; Regular list element
 
 
-;************************************
-
 ;;; FIELD-REMOVER
 (defun field-remover (new-list old-list)
   (controllo-tipo (cadr (remove-and-find-matches old-list new-list)))
@@ -196,8 +194,6 @@
 (defun method-replacer (new-list old-list)
   (car (remove-and-find-matches old-list new-list)))
 
-;************************************
-
 
 ;;; CHECK-TYPE-IN-SUBCLASS
 ; controllo se il typeClass e' una classe e se il Supertipo e' contenuto nei genitori della classe typeClass
@@ -211,7 +207,99 @@
           (NIL))) 
         (t NIL)))       
 
+;************* ISTANZE ************
+;;;; MAKE
+;;attributi validi della classe non sovrascritti, non quelli passati come ;parametro nella crezaione dell'istanza
+;(defun make (class-name &rest part)
+;  (cond ((null (is-class class-name))
+;	 (error "La classe che si desidera istanziare non e' stata
+;definita in precedenza."))
+;	((null (valid-slot-check (inherit-from-p (build-parts   
+;						  part)
+;						 (list class-name))
+;				 (cadr (get-class-spec class-name))))
+;	 (error "Uno o piu' slot-value non validi."))
+;	(t (cons 'oolinst (cons class-name (inherit-from-p
+;					    (build-parts part)
+;					    (list class-name)))))))
 
+;;; MAKE VECCHIA
+(defun make (class-name &rest field-value)
+  (cond ((null (is-class class-name))
+	 (error "La classe che si desidera istanziare non e' stata
+definita in precedenza."))
+	((not (evenp (list-length field-value)))
+	 (error "Gli argomenti sono in numero dispari."))
+	((not (<= (list-length field-value)
+		  (* 2 (list-length (cadr (get-class-spec
+					   class-name))))))
+	 (error "Il numero di field-value passati eccede il numero di
+field-value della classe da istanziare."))
+	((has-duplicates field-value)
+	 (error "Sono presenti uno o piu' field-name duplicati."))
+	((null (valid-field-check (inherit-from-p (build-parts
+						  field-value)
+						 (list class-name))
+				 (cadr (get-class-spec class-name))))
+	 (error "Uno o piu' field-value non validi."))
+	(t (cons 'oolinst (cons class-name (inherit-from-p
+					    (build-parts field-value)
+					    (list class-name)))))))
+
+
+;;; VALID-FIELD-CHECK
+; risponde T se pairs-l e' NULL quindi se lo abbiamo controllato tutto 
+(defun valid-field-check (pairs-l class-field-l)
+  (if (and (null (car (remove-and-find-matches pairs-l class-field-l))) 
+        (controllo-tipo (cadr ((remove-and-find-matches pairs-l class-field-l)))))
+      T
+      NIL))
+
+
+;;; IS-THERE-FIELD 
+;controlla che (NAME "EVE" . T) sia presente nella lista del genitore (((NAME "EVE" . T) (AGE 21 . INTEGER))) 
+(defun is-there-field (field-name s-parent-l)
+  (if (null s-parent-l)
+      NIL
+    (if (equal field-name (caar s-parent-l))
+	    T
+      (is-there-field field-name (cdr s-parent-l)))))
+
+
+;;; HAS-DUPLICATES	
+(defun has-duplicates (field-value-l)
+  (cond ((null field-value-l) nil)
+        ((member (car field-value-l) (cddr field-value-l)) t)
+        (t (has-duplicates (cddr field-value-l)))))
+
+
+;;; IS-INSTANCE
+(defun is-instance (value &optional (class-name T))
+  (if (and (listp value)
+	   (>= (list-length value) 2)
+	   (symbolp class-name)
+	   (eql (car value) 'oolinst)
+	   (not (null (is-class (second value))))
+	   (valid-field-check (cddr value)
+			     (cadr (get-class-spec (second value)))))
+      (cond ((null (eql class-name T))
+	     (not (null (member class-name
+				(retrieve-parents (second value))))))
+	    ((eql class-name T) T))
+    (error "Value non e' un'istanza o class-name non rispetta il
+formato atteso in input per is-instance.")))
+
+
+;;; RETRIEVE-PARENTS
+(defun retrieve-parents (parent)
+  (if (null parent)
+      NIL
+    (append (car (get-class-spec parent))
+	    (retrieve-parents (caar (get-class-spec parent))))))
+
+
+
+;************** METODI **************
 ;;; REWRITE-METHOD
 (defun rewrite-method (method-spec)
   (list 'lambda (append '(this)
