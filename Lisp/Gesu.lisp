@@ -92,8 +92,8 @@
 ;;; CHECK-TYPES-IN-FIELD
 (defun check-types-in-field (value type)
   (cond ((typep value type) T)
-        ;((is-instance value type) T)
-        (t NIL)))
+        ((is-instance value type) T)
+        (t (error "value ~s for field X is not of type ~s" value type))))
 
 ;;; PROCESS-METHOD	 
 (defun process-method (method-name method-spec)
@@ -228,41 +228,68 @@ definita in precedenza."))
 field-value della classe da istanziare."))
 	((has-duplicates field-value)
 	 (error "Sono presenti uno o piu' field-name duplicati."))
-	((null (valid-field-check (inherit-from-p (list (list (process-field
-						   field-value)))
-						 (list class-name))
+	((null (valid-field-check (make-inherit-from-p 
+    (cond ((null (process-field-make (form-couples field-value))) nil)
+          ((not (null (process-field-make (form-couples field-value))))
+            (list (process-field-make (form-couples field-value)))))
+    (list class-name))  
 				 (cadr (get-class-spec class-name))))
 	 (error "Uno o piu' field-value non validi."))
-	(t (cons 'oolinst (cons class-name (inherit-from-p
-					    (list (list (process-field field-value)))
+	(t (cons 'oolinst (cons class-name (make-inherit-from-p
+					    (list (process-field-make (form-couples field-value)))
 					    (list class-name)))))))
+
+;;; MAKE-INHERIT-FROM-P
+(defun make-inherit-from-p (s-input-l parents-l)
+  (if (null parents-l)
+      s-input-l
+    (make-inherit-from-p
+     (make-parts-to-be-inherited s-input-l
+			    (cadr (get-class-spec (car parents-l)))
+			    s-input-l)
+     (cdr parents-l))))
+
+;;; MAKE-PARTS-TO-BE-INHERITED
+(defun make-parts-to-be-inherited (s-input-l s-parent-l c-input-l)
+  (if (null s-input-l)
+    (if (or (null s-parent-l) (null (car s-parent-l)))
+        c-input-l
+      (if (symbolp (first s-parent-l))
+        (append (cons (append (car c-input-l) (car (list s-parent-l)))  
+        (append (cdr c-input-l) (cdr (list s-parent-l)))))
+
+        (append (cons (append (car c-input-l) (car s-parent-l))
+        (append (cdr c-input-l) (cdr (list s-parent-l)))))))
+    (if (null s-parent-l)
+	    c-input-l
+      (make-parts-to-be-inherited (cddr s-input-l) 
+       (list (field-remover (car s-input-l)   
+       (car s-parent-l))) 
+       c-input-l))))
 
 ;;; FORM-COUPLES
 (defun form-couples (field-l)
-    (if (and (symbolp (car field-l)) (= (length field-l) 2))
-      (list field-l)
-        (cons (list (first field-l) (second field-l)) (form-couples (cddr field-l)))))
+    (if (null field-l)
+    NIL
+    (if (and (symbolp (car field-l)) (= (length field-l) 2)) 
+        (list field-l)
+        (cons (list (first field-l) (second field-l)) (form-couples (cddr field-l))))))
 
 ;;; PROCESS-FIELD-MAKE
 (defun process-field-make (field-l)        
 	(if (null field-l) 
       NIL
-
       (if (= (length (car field-l)) 2)
-         ((cond ((= (list-length field-l) 1)
-             (cons (car field-l) (cons NIL T)))
-           ((= (list-length field-l) 2)
-    		      (cons (car field-l)
-    				  (cons (second field-l) T)))
-          ((= (list-length field-l) 3)
-             (if (check-types-in-field (cadr field-l) (caddr field-l))
-                  (cons (car field-l) (cons (second field-l) (third field-l)))
-          (error "Il valore indicato non rispetta il tipo specificato.")))
-          (t (process-field-make (cdr field-l))))))
-  )
+         (cons
+            (cond ((= (list-length (car field-l)) 2)
+    		        (cons (caar field-l)
+    		    	  (cons (cadar field-l) T)))
+              ((= (list-length (car field-l)) 3)
+               (if (check-types-in-field (cadar field-l) (cddar field-l))
+                    (cons (caar field-l) (cons (cadar field-l) (cddar field-l)))
+            (error "Il valore indicato non rispetta il tipo specificato."))))
+          (process-field-make (cdr field-l))))))
 
-       
-)
 
 ;;; VALID-FIELD-CHECK
 ; risponde T se pairs-l e' NULL quindi se lo abbiamo controllato tutto 
