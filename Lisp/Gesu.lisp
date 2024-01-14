@@ -95,13 +95,6 @@
         ((is-instance value type) T)
         (t (error "value ~s for field X is not of type ~s" value type))))
 
-;;; PROCESS-METHOD	 
-(defun process-method (method-name method-spec)
-  (setf (fdefinition method-name)
-	(lambda (this &rest arglist)
-	  (apply (field this method-name)
-		 (append (list this) arglist))))
-  (eval (rewrite-method method-spec)))
 
 ;;; INHERIT-FROM-P
 (defun inherit-from-p (s-input-l parents-l)
@@ -259,12 +252,13 @@ field-value della classe da istanziare."))
         (append (cdr c-input-l) (cdr (list s-parent-l)))))
 
         (append (cons (append (car c-input-l) (car s-parent-l))
-        (append (cdr c-input-l) (cdr (list s-parent-l)))))))
+        (append (cdr c-input-l) (cdr s-parent-l))))))
     (if (null s-parent-l)
 	    c-input-l
       (make-parts-to-be-inherited (cddr s-input-l) 
        (list (field-remover (car s-input-l)   
-       (car s-parent-l))) 
+       (car s-parent-l))
+       (car (method-replacer (cadr s-input-l) (cdr s-parent-l)))) 
        c-input-l))))
 
 ;;; FORM-COUPLES
@@ -334,7 +328,8 @@ field-value della classe da istanziare."))
 	   (not (null (is-class (second value))))
 	   (valid-field-check (cddr value)
 			     (cadr (get-class-spec (second value)))))
-      (cond ((null (eql class-name T))
+      (cond ((eql (second value) class-name) T)
+      ((null (eql class-name T))
 	     (not (null (member class-name
 				(retrieve-parents (second value))))))
 	    ((eql class-name T) T))
@@ -386,6 +381,25 @@ formato atteso in input per is-instance.")))
 			      (cdr field-name-l))))))
 
 ;************** METODI **************
+;;; PROCESS-METHOD	 
+(defun process-method (method-name method-spec)
+  (setf (fdefinition method-name)
+	(lambda (this &rest arglist)
+	  (apply (method-finder this method-name)
+		 (append (list this) arglist))))
+  (eval (rewrite-method method-spec)))
+
+;;; METHOD-FINDER
+(defun method-finder (instance method-name)
+  (if (and (not (null instance))
+	     (not (null method-name))
+	     (is-instance instance)
+	     (symbolp method-name))
+        (if (not (null (get-field (cadddr instance) method-name)))
+	         (car (get-field (cadddr instance) method-name))
+	         (error "no method for field ~s found." method-name))
+        (error "Parametri in input per method non validi.")))
+
 ;;; REWRITE-METHOD
 (defun rewrite-method (method-spec)
   (list 'lambda (append '(this)
