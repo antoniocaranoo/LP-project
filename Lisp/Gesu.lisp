@@ -29,7 +29,7 @@
     (t (add-class-spec class-name
                (list parents
                  (inherit-from-p
-                  (build-parts part) parents)))
+                  (build-parts (reverse-lists part)) parents)))
        class-name)))
 
 
@@ -57,6 +57,7 @@
 		(build-parts (cdr part-l)))))
 
 ;;; PROCESS-PART		
+;; CORREGGIIIIIIIIIIII
 (defun process-part (input-l)
 	(if (null input-l)
       (error "Part in input non e' una lista.")
@@ -65,11 +66,17 @@
       (if (equal 'fields (car input-l))
 		(mapcar 'process-field (cdr input-l))))))
 
+;;; REVERSE-LISTS
+(defun reverse-lists (part)
+  (if (eql (caar part) 'methods)
+    (reverse part)
+    part))
+
 ;;; PROCESS-METHODS-LIST
 (defun process-methods-l (methods-l)
 	 (cons (car methods-l)
 		    (process-method (car methods-l)
-				    (cdr methods-l))))
+				   (cdr methods-l))))
 
 ;;; PROCESS-FIELD
 (defun process-field (field-l)        
@@ -155,8 +162,7 @@
 ;;; FIELD-REMOVER
 (defun field-remover (new-list old-list)
   (controllo-tipo (cadr (remove-and-find-matches old-list new-list)))
-  (car (remove-and-find-matches old-list new-list))
-)
+  (car (remove-and-find-matches old-list new-list)))
 
 ;;; REMOVE-AND-FIND-MATCHES 
 ; trova duplicati in una lista
@@ -360,7 +366,6 @@ formato atteso in input per is-instance.")))
       (get-field (cdr field-pairs) field-name))))
 
 ;************** FIELD* **************
-
 ;;; FIELD*
 (defun field* (instance &rest field-name-l)
   (get-field-w-list instance field-name-l))					
@@ -389,6 +394,7 @@ formato atteso in input per is-instance.")))
 		 (append (list this) arglist))))
   (eval (rewrite-method method-spec)))
 
+
 ;;; METHOD-FINDER
 (defun method-finder (instance method-name)
   (if (and (not (null instance))
@@ -396,15 +402,16 @@ formato atteso in input per is-instance.")))
 	     (is-instance instance)
 	     (symbolp method-name))
         (if (not (null (get-field (cadddr instance) method-name)))
-	         (car (get-field (cadddr instance) method-name))
+	         (cdr (get-field (cadddr instance) method-name))
 	         (error "no method for field ~s found." method-name))
         (error "Parametri in input per method non validi.")))
 
+
 ;;; REWRITE-METHOD
-(defun rewrite-method (method-spec)
-  (list 'lambda (append '(this)
-			(car method-spec))
-	(cons 'progn (cdr method-spec))))
+(defun rewrite-method (method-spec) 
+    (cons 'lambda 
+        (cons (append (list 'this) (car method-spec)) 
+              (cdr method-spec))))
 
 ;;;; end of file -- Gesu.lisp
 
