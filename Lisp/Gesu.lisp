@@ -57,7 +57,6 @@
 		(build-parts (cdr part-l)))))
 
 ;;; PROCESS-PART		
-;; CORREGGIIIIIIIIIIII
 (defun process-part (input-l)
 	(if (null input-l)
       (error "Part in input non e' una lista.")
@@ -100,7 +99,7 @@
 (defun check-types-in-field (value type)
   (cond ((typep value type) T)
         ((is-instance value type) T)
-        (t (error "value ~s for field X is not of type ~s" value type))))
+        (t (error "value ~s for field written is not of type ~s" value type))))
 
 
 ;;; INHERIT-FROM-P
@@ -187,7 +186,7 @@
     nil
     (if  (check-type-in-subclass (cadr (cadar list)) (cddr (cadar list)) (cddaar list))
       (controllo-tipo (cdr list))
-      (error "Sottotipo piu' ampio del supertipo, non viene rispettata la gerarchia tra tipi.")))) ;;;;;;;;;; MIGLIORA FRASE ERRORE
+      (error "type of field ~s is a supertype of inherited type." (caar list))))) ;;;;;;;;;; MIGLIORA FRASE ERRORE
 
 ;;; METHOD-REPLACER
 (defun method-replacer (new-list old-list)
