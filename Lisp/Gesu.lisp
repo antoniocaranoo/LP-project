@@ -117,14 +117,30 @@
 ;quando non ha piu' nulla da controllare della sottoclasse rispetto ai parent, unisce i nuovi fields specificati a quelli puramente ereditati
 (defun parts-to-be-inherited (s-input-l s-parent-l c-input-l)
   (if (null s-input-l)
-    (if (or (null s-parent-l) (null (car s-parent-l)))
+    (if (null s-parent-l)
         c-input-l
-      (if (symbolp (first s-parent-l))
-        (append (cons (append (car c-input-l) (car (list s-parent-l)))  
-        (append (cdr c-input-l) (cdr (list s-parent-l)))))
-
+      (if (null (car s-parent-l))
+        (append (cons (car c-input-l)  
+        (append (cdr c-input-l) (cdar (list s-parent-l)))))
+        
+        (if (null (cdr s-parent-l))
         (append (cons (append (car c-input-l) (car s-parent-l))
-        (append (cdr c-input-l) (cdr (list s-parent-l)))))))
+         (cdr c-input-l)))
+          ; se la classe ha solo methods
+          (if (and (not (= (count-elements (cdaar c-input-l)) 2)) (null (cdr c-input-l))
+              (null (cadr (remove-and-find-matches (car s-parent-l)
+              (car c-input-l)))) 
+              (null (cadr (remove-and-find-matches (car s-parent-l) (cdr 
+              c-input-l)))) 
+              (= (count-elements (car s-parent-l)) (count-elements 
+              (car (remove-and-find-matches (car s-parent-l) (car 
+              c-input-l))))))
+                (append (cons (car s-parent-l)
+                (list (append (car c-input-l) (cadr s-parent-l)))))
+
+                (append (cons (append (car c-input-l) (car s-parent-l))
+                (list (append (cdr c-input-l) (cadr s-parent-l)))))
+                ))))
 
     (if (null s-parent-l)
 	    c-input-l
@@ -141,7 +157,17 @@
                  (car s-parent-l))
                 (method-replacer (cadr s-input-l) NIL))
                 c-input-l))
-
+                ; tutta sta roba se la classe ha solo methods e il genitore ha fields e methods
+                ((and (= (length (car s-input-l)) 1) (null (cdr s-input-l))
+                (null (cadr (remove-and-find-matches (car s-parent-l) (car s-input-l)))) 
+                (null (cadr (remove-and-find-matches (car s-parent-l) (cdr s-input-l)))) 
+                (= (count-elements (car s-parent-l)) (count-elements 
+                (car (remove-and-find-matches (car s-parent-l) (car s-input-l))))))
+                  (parts-to-be-inherited (cddr s-input-l) 
+                    (cons (field-remover NIL (car s-parent-l))
+                      (method-replacer s-input-l (cdr s-parent-l))) 
+                  c-input-l))
+                
                 (t (parts-to-be-inherited (cddr s-input-l) 
                   (cons (field-remover (car s-input-l)   
 		                (car s-parent-l))
@@ -413,4 +439,3 @@ formato atteso in input per is-instance.")))
               (cdr method-spec))))
 
 ;;;; end of file -- Gesu.lisp
-
