@@ -127,7 +127,8 @@
         (append (cons (append (car c-input-l) (car s-parent-l))
          (cdr c-input-l)))
           ; se la classe ha solo methods
-          (if (and (not (= (count-elements (cdaar c-input-l)) 2)) (null (cdr c-input-l))
+          (if (and (not (= (count-elements (cdaar c-input-l)) 2)) (null       
+              (cdr c-input-l))
               (null (cadr (remove-and-find-matches (car s-parent-l)
               (car c-input-l)))) 
               (null (cadr (remove-and-find-matches (car s-parent-l) (cdr 
@@ -148,7 +149,7 @@
               (parts-to-be-inherited (cddr s-input-l) 
                 (cons (field-remover (car s-input-l)   
 		             NIL)
-                (method-replacer (cadr s-input-l) (car s-parent-l)))
+                (list (method-replacer (cadr s-input-l) (car s-parent-l))))
                 c-input-l))
 
                 ((and (= (count-elements (caar s-parent-l)) 3) (null (cdr s-parent-l)))
@@ -278,9 +279,12 @@ field-value della classe da istanziare."))
   (if (null s-input-l)
     (if (or (null s-parent-l) (null (car s-parent-l)))
         c-input-l
-      (if (symbolp (first s-parent-l))
-        (append (cons (append (car c-input-l) (car (list s-parent-l)))  
-        (append (cdr c-input-l) (cdr (list s-parent-l)))))
+      (if (= (count-elements (caar s-parent-l)) 2)
+        (append (cons (car c-input-l)  
+        (list (append (cdr c-input-l) (cdr (list s-parent-l))))))
+
+        (append (cons (append (car c-input-l) (car s-parent-l))
+        (list (append (cdr c-input-l) (cadr s-parent-l)))))
 
         (append (cons (append (car c-input-l) (car s-parent-l))
         (append (cdr c-input-l) (cdr s-parent-l))))))
