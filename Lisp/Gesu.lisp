@@ -1,6 +1,6 @@
 ;;;; -*- Mode: Lisp -*- 
 ;;;; ool.lisp
-; VERSIONE ESASME
+
 ;;;; Cantaluppi Camilla 894557
 ;;;; Carano Antonio 902447
 ;;;; Ladisa Roberto 899699
@@ -43,7 +43,8 @@
 	(t (add-class-spec class-name
 			   (list parents
 				 (inherit-from-p
-				  (build-parts (reverse-lists part)) parents)))
+				  (build-parts (reverse-lists part))
+				  parents)))
 	   class-name)))
 
 ;; Verifica se un dato simbolo (class-name) e' una classe definita, 
@@ -123,12 +124,12 @@
 ;;; CHECK-TYPES-IN-FIELD
 (defun check-types-in-field (value type)
   (if (is-class type)
-	(if (is-instance (eval value) type)
-	t 
-	(error "value ~s for field written is not of type ~s" value type))
-   (if (typep value type)
-   t
-   (error "value ~s for field written is not of type ~s" value type))))
+      (if (is-instance (eval value) type)
+	  t 
+	  (error "value ~s for field written is not of type ~s" value type))
+      (if (typep value type)
+	  t
+	  (error "value ~s for field written is not of type ~s" value type))))
 
 ;; Determina quali attributi una classe deve ereditare dai suoi genitori.
 ;;; INHERIT-FROM-P
@@ -150,65 +151,74 @@
           c-input-l
 	  (if (null (car s-parent-l))
               (append (cons (car c-input-l)  
-			    (list (append (cadr c-input-l) (cadr s-parent-l)))))
+			    (list (append (cadr c-input-l)
+					  (cadr s-parent-l)))))
               
               (if (null (cdr s-parent-l))
 		  (append (cons (append (car c-input-l) (car s-parent-l))
 				(cdr c-input-l)))
-		  (if (and (not (= (count-elements (cdaar c-input-l)) 2)) (null       
-									   (cdr c-input-l))
-			   (null (cadr (remove-and-find-matches (car s-parent-l)
-								(car c-input-l)))) 
-			   (null (cadr (remove-and-find-matches (car s-parent-l) (cdr 
-										  c-input-l)))) 
-			   (= (count-elements (car s-parent-l)) (count-elements 
-								 (car (remove-and-find-matches (car 
-								 s-parent-l) (car 
-														 c-input-l))))))
+		  (if (and (not (= (count-elements (cdaar c-input-l)) 2))
+			   (null (cdr c-input-l))
+			   (null (cadr (remove-and-find-matches
+					(car s-parent-l) (car c-input-l)))) 
+			   (null (cadr (remove-and-find-matches
+					(car s-parent-l) (cdr c-input-l)))) 
+			   (= (count-elements (car s-parent-l))
+			      (count-elements (car (remove-and-find-matches
+						    (car s-parent-l)
+						    (car c-input-l))))))
                       (append (cons (car s-parent-l)
-				    (list (append (car c-input-l) (cadr s-parent-l)))))
+				    (list (append (car c-input-l)
+						  (cadr s-parent-l)))))
 
                       (append (cons (append (car c-input-l) (car s-parent-l))
-				    (list (append (cadr c-input-l) (cadr s-parent-l)))))
-                      ))))
+				    (list (append (cadr c-input-l)
+						  (cadr s-parent-l)))))))))
 
       (if (null s-parent-l)
 	  c-input-l
           (cond ((= (count-elements (caar s-parent-l)) 2)
 		 (parts-to-be-inherited (cddr s-input-l) 
-					(cons (field-remover (car s-input-l)   
-							     NIL)
-					      (list (method-replacer (cadr s-input-l) (car 
-						  s-parent-l))))
+					(cons (field-remover
+					       (car s-input-l) NIL)
+					      (list (method-replacer
+						     (cadr s-input-l)
+						     (car s-parent-l))))
 					c-input-l))
 
-                ((and (= (count-elements (caar s-parent-l)) 3) (null (cdr 
-				s-parent-l)))
+                ((and (= (count-elements (caar s-parent-l)) 3)
+		      (null (cdr s-parent-l)))
                  (parts-to-be-inherited (cddr s-input-l) 
-					(cons (field-remover (car s-input-l)   
+					(cons (field-remover (car s-input-l)
 							     (car s-parent-l))
-					      (method-replacer (cadr s-input-l) NIL))
+					      (method-replacer
+					       (cadr s-input-l) NIL))
 					c-input-l))
 		
-                ((and (= (count-elements (caar s-input-l)) 2) (null (cdr 
-				s-input-l))
+                ((and (= (count-elements (caar s-input-l)) 2)
+		      (null (cdr s-input-l))
                       (null (cadr (remove-and-find-matches (car s-parent-l) 
-					  (car s-input-l)))) 
+							   (car s-input-l)))) 
                       (null (cadr (remove-and-find-matches (car s-parent-l) 
-					  (cdr s-input-l)))) 
-                      (= (count-elements (car s-parent-l)) (count-elements 
-							    (car (remove-and-find-matches (car 
-								s-parent-l) (car s-input-l))))))
+							   (cdr s-input-l)))) 
+                      (= (count-elements (car s-parent-l))
+			 (count-elements
+			  (car (remove-and-find-matches (car s-parent-l)
+							(car s-input-l))))))
                  (parts-to-be-inherited (cddr s-input-l) 
-					(cons (field-remover NIL (car s-parent-l))
-					      (method-replacer s-input-l (cdr s-parent-l))) 
+					(cons (field-remover
+					       NIL (car s-parent-l))
+					      (method-replacer
+					       s-input-l (cdr s-parent-l))) 
 					c-input-l))
                 
                 (t (parts-to-be-inherited (cddr s-input-l) 
-					  (cons (field-remover (car s-input-l)   
-							       (car s-parent-l))
-						(list (method-replacer (cadr s-input-l) (cadr 
-						s-parent-l))))
+					  (cons (field-remover
+						 (car s-input-l)
+						 (car s-parent-l))
+						(list (method-replacer
+						       (cadr s-input-l)
+						       (cadr s-parent-l))))
 					  c-input-l))))))
 
 ;; Conta gli elementi in una lista o una coppia puntata.
@@ -240,8 +250,9 @@
       (list (reverse acc) (reverse matches))
       (let* ((current (first list-a))
              (rest (rest list-a))
-             (match (find-if (lambda (item) (equal (first current) (first 
-			 item))) list-b)))
+             (match (find-if (lambda (item) (equal (first current)
+						   (first item)))
+			     list-b)))
         (if match
             (match-helper rest list-b acc (cons (list current match) matches))
             (match-helper rest list-b (cons current acc) matches)))))
@@ -254,10 +265,10 @@
   (if (null list)
       nil
       (if  (check-type-in-subclass (cadr (cadar list)) (cddr (cadar list)) 
-	  (cddaar list))
+				   (cddaar list))
 	   (controllo-tipo (cdr list))
-	   (error "type of field ~s is a supertype of inherited type." (caar 
-	   list))))) 
+	   (error "type of field ~s is a supertype of inherited type."
+		  (caar	list))))) 
 
 ;; Sostituisce i metodi esistenti in una lista di metodi.
 ;;; METHOD-REPLACER
@@ -269,23 +280,25 @@
 ;;; CHECK-TYPE-IN-SUBCLASS
 (defun check-type-in-subclass (value typeClass typeSuper)
   (if (equal typeClass 'T)
-	(if (typep value typeSuper) 
-		T
-	(error "value ~s for field X is not of type ~s" value typeSuper))
-  
-  	(if (is-class typeClass)
-		(if (or (member typeSuper (car (get-class-spec typeClass))) (eql 
-		typeClass typeSuper))
-    		T
-    		(error "value ~s for field X is not of type ~s" value typeSuper))
+      (if (typep value typeSuper) 
+	  T
+	  (error "value ~s for field X is not of type ~s" value typeSuper))
+      
+      (if (is-class typeClass)
+	  (if (or (member typeSuper (car (get-class-spec typeClass)))
+		  (eql typeClass typeSuper))
+    	      T
+    	      (error "value ~s for field X is not of type ~s" value
+		     typeSuper))
 
-		(if (subtypep typeClass typeSuper)
-			(if (typep value typeClass)
-    			T
-    		(error "value ~s for field X is not of type ~s" value typeClass))
+	  (if (subtypep typeClass typeSuper)
+	      (if (typep value typeClass)
+    		  T
+    		  (error "value ~s for field X is not of type ~s" value
+			 typeClass))
 
-			(error "value ~s for field X is not of type ~s" value typeClass)) 
-			)))
+	      (error "value ~s for field X is not of type ~s" value
+		     typeClass)))))
 
 ;;************* ISTANZE ************
 
@@ -306,16 +319,22 @@ field-value della classe da istanziare."))
 	((has-duplicates field-value)
 	 (error "Sono presenti uno o piu' field-name duplicati."))
 	((null (valid-field-check (make-inherit-from-p 
-				   (cond ((null (process-field-make (form-couples 
-				   field-value))) nil)
-					 ((not (null (process-field-make (form-couples 
-					 field-value))))
-					  (list (process-field-make (form-couples field-value)))))
+				   (cond ((null (process-field-make
+						 (form-couples field-value)))
+					  nil)
+					 ((not (null (process-field-make
+						      (form-couples
+						       field-value))))
+					  (list (process-field-make
+						 (form-couples
+						  field-value)))))
 				   (list class-name))  
 				  (cadr (get-class-spec class-name))))
 	 (error "Uno o piu' field-value non validi."))
 	(t (cons 'oolinst (cons class-name (make-inherit-from-p
-					    (list (process-field-make (form-couples field-value)))
+					    (list (process-field-make
+						   (form-couples
+						    field-value)))
 					    (list class-name)))))))
 
 ;; Determina gli attributi da includere in un'istanza, tenendo conto 
@@ -337,18 +356,19 @@ field-value della classe da istanziare."))
           c-input-l
           (if (= (count-elements (caar s-parent-l)) 2)
               (append (cons (car c-input-l)
-                            (list (append (cdr c-input-l) (cdr (list 
-							s-parent-l))))))
+                            (list (append (cdr c-input-l)
+					  (cdr (list s-parent-l))))))
               (append (cons (append (car c-input-l) (car s-parent-l))
-                            (list (append (cdr c-input-l) (cadr 
-							s-parent-l)))))))
+                            (list (append (cdr c-input-l)
+					  (cadr s-parent-l)))))))
       (if (null s-parent-l)
           c-input-l
           (make-parts-to-be-inherited (cddr s-input-l)
                                       (list (field-remover (car s-input-l) 
-									  (car s-parent-l))
-                                            (car (method-replacer (cadr 
-											s-input-l) (cdr s-parent-l))))
+							   (car s-parent-l))
+                                            (car (method-replacer
+						  (cadr s-input-l)
+						  (cdr s-parent-l))))
                                       c-input-l))))
 
 ;; Forma coppie di nome-valore dai campi forniti.
@@ -358,8 +378,8 @@ field-value della classe da istanziare."))
       NIL
       (if (and (symbolp (car field-l)) (= (length field-l) 2)) 
           (list field-l)
-          (cons (list (first field-l) (second field-l)) (form-couples (cddr 
-		  field-l))))))
+          (cons (list (first field-l) (second field-l))
+		(form-couples (cddr field-l))))))
 
 ;; Elabora i campi durante la creazione di un'istanza.
 ;;; PROCESS-FIELD-MAKE
@@ -374,18 +394,18 @@ field-value della classe da istanziare."))
 		 ((= (list-length (car field-l)) 3)
 		  (if (check-types-in-field (cadar field-l) (cddar field-l))
                       (cons (caar field-l) (cons (cadar field-l) (cddar 
-					  field-l)))
-		      (error "Il valore indicato non rispetta il tipo specificato.
-			  "))))
+								  field-l)))
+		      (error "Il valore indicato non rispetta il tipo
+ specificato."))))
            (process-field-make (cdr field-l))))))
 
 ;; Verifica la validita' dei campi di un'istanza.
 ;;; VALID-FIELD-CHECK
 (defun valid-field-check (pairs-l class-field-l)
-  (if (and (null (caar (remove-and-find-matches (car pairs-l) (car 
-  class-field-l)))) 
-           (null (controllo-tipo (cadr (remove-and-find-matches (car pairs-l) 
-		   (car class-field-l))))))
+  (if (and (null (caar (remove-and-find-matches (car pairs-l)
+						(car class-field-l)))) 
+           (null (controllo-tipo (cadr (remove-and-find-matches
+					(car pairs-l) (car class-field-l))))))
       T
       NIL))
 
@@ -462,7 +482,7 @@ formato atteso in input per is-instance.")))
 ;; contemporaneamente.
 ;;; FIELD*
 (defun field* (instance &rest field-name-l)
-  (get-field-w-list instance field-name-l))					
+  (get-field-w-list instance field-name-l))  	
 
 ;; Aiuta field* a recuperare una lista di campi da un'istanza.
 ;;; GET-FIELD-W-LIST				
