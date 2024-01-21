@@ -30,13 +30,13 @@ def_class(ClassName, Parents, Parts) :-
 is_a_set([]).
 
 is_a_set([(A, B) | Rest]) :-
-    list_member((A, B), Rest), !, fail.
+    member_of_list((A, B), Rest), !, fail.
 
 is_a_set([(_, _) | Rest]) :-
     is_a_set(Rest), !.
 
 is_a_set([A | Rest]) :-
-    list_member(A, Rest), !, fail.
+    member_of_list(A, Rest), !, fail.
 
 is_a_set([_ | Rest]) :-
     is_a_set(Rest), !.
@@ -256,10 +256,10 @@ are_parts_in_instance(Instance, CN, Parts) :-
 are_parts_in_instance(_, [], [], []) :- !.
 
 are_parts_in_instance(Instance, [field(FN, _, Type) | OtherPartsFC], MethodsFC, PartsToOverride) :-
-    list_member(FN=NFV, PartsToOverride),
+    member_of_list(FN=NFV, PartsToOverride),
     is_type(NFV, Type),
     asserta(field_in_instance(field(FN, NFV, Type), Instance)),
-    list_without_el(FN=NFV, PartsToOverride, OtherPartsToOverride),
+    rm_el_from_l(FN=NFV, PartsToOverride, OtherPartsToOverride),
     are_parts_in_instance(Instance, OtherPartsFC, MethodsFC, OtherPartsToOverride), !.
 
 are_parts_in_instance(Instance, [field(FN, FV, Type) | OtherPartsFC], MethodsFC, PartsToOverride) :-
@@ -285,16 +285,16 @@ is_instance_method(IN, method(MN, Args, RawBody)) :-
     asserta(method_in_instance(method(MN, Args, Body), IN)),
     asserta((MSig :- (MSig) =.. [MN, Instance | Args], execute_method(MN, Args, Instance), !)), !.
 
-list_member(A, [A]) :- !.
+member_of_list(A, [A]) :- !.
 
-list_member(A, [A | _]) :- !.
+member_of_list(A, [A | _]) :- !.
 
-list_member(A, [_ | As]) :-
-    list_member(A, As), !.
+member_of_list(A, [_ | As]) :-
+    member_of_list(A, As), !.
 
 field(Instance, FieldName, FieldValue) :-
     inst(IN, Instance), !,
-    field_in_instance(field(FieldName, FieldValue, _), IN).
+    field_in_instance(field(FieldName, FieldValue, _), IN), !.
 
 field(Instance, FieldName, FieldValue) :-
     field_in_instance(field(FieldName, FieldValue, _), Instance), !.
@@ -306,19 +306,19 @@ fieldx(Instance, [FieldName | FieldNames], FieldValue) :-
 fieldx(IN, [FieldName], FieldValue) :-
     field(IN, FieldName, FieldValue), !.
 
-list_without_el(_, [], []).
+rm_el_from_l(_, [], []).
 
-list_without_el(X, [X | Z], E) :-
-    list_without_el(X, Z, E), !.
+rm_el_from_l(X, [X | Z], E) :-
+    rm_el_from_l(X, Z, E), !.
 
-list_without_el(X, [W | Z], [W | E]) :-
-    list_without_el(X, Z, E), !.
+rm_el_from_l(X, [W | Z], [W | E]) :-
+    rm_el_from_l(X, Z, E), !.
 
-my_maplist(_, [], [], []).
+for_eachl(_, [], [], []).
 
-my_maplist(P, [A | As], [B | Bs], [C | Cs]) :-
+for_eachl(P, [A | As], [B | Bs], [C | Cs]) :-
     call(P, A, B, C),
-    my_maplist(P, As, Bs, Cs).
+    for_eachl(P, As, Bs, Cs).
 
 explode_parts([], []).
 
