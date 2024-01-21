@@ -81,12 +81,19 @@ inherit_fields_from_supc(ClassName, [field(FN, _, TypeSp) | Fields]) :-
 % e quindi fare un retractall di tutte le cose che sono state asserite per
 % la creazione della classe
 
+inherit_fields_from_supc(ClassName, [field(FieldName, instance(IN, CN, Fields), Type) | Fields]) :-
+	!,
+	inst(IN, instance(IN, CN, Fields)),
+	assertz(field_in_class(field(FieldName, instance(IN, CN, Fields), Type), ClassName)),
+    inherit_fields_from_supc(ClassName, Fields), !.
+
 
 inherit_fields_from_supc(ClassName, [field(FieldName, FieldValue, Type) | Fields]) :-
     assertz(field_in_class(field(FieldName, FieldValue, Type), ClassName)),
     inherit_fields_from_supc(ClassName, Fields), !.
 
 % GESTIONE TYPE
+
 check_type(float, integer).
 
 check_type(numeric, float).
@@ -95,6 +102,7 @@ check_type(numeric, integer).
 
 check_type(X, X).
 
+check_type([], _).
 
 % check_type(FieldSuperClass, FieldCurrentClass).
 check_type(TypeSp, TypeCN) :-
@@ -103,6 +111,8 @@ check_type(TypeSp, TypeCN) :-
     is_superclass(TypeSp, TypeCN).
 
 % INTEGER, REAL, STRING. LIST?
+
+is_type(_, []).
 
 is_type(X, integer) :-
     integer(X).
@@ -122,23 +132,35 @@ is_type(X, atom) :-
 is_type(X, compound) :-
     compound(X).
 
-is_type(X, DefinedClass) :-
-    inst(X, instance(_, DefinedClass, _)).
-
+is_type(Class, Superclass) :-
+    is_superclass(Superclass, Class).
 
 are_parts(_, []) :- !.
 
 are_parts(ClassName, [method(MN, ArgL, Form) | Parts]) :-
     is_method_term(ClassName, method(MN, ArgL, Form)),
     are_parts(ClassName, Parts), !.
+	
+are_parts(ClassName, [field(FN, instance(IN, CN, Fields), Type) | Parts]) :-
+	!,
+	inst(IN, instance(IN, CN, Fields)),
+    is_type(CN, Type),
+    asserta(field_in_class(field(FN, instance(IN, CN, Fields), Type), ClassName)),	
+    are_parts(ClassName, Parts), !.
 
 are_parts(ClassName, [field(FN, FV, Type) | Parts]) :-
     is_type(FV, Type),
     asserta(field_in_class(field(FN, FV, Type), ClassName)),	
     are_parts(ClassName, Parts), !.
-
+	
+are_parts(ClassName, [field(FN, instance(IN, CN, Fields)) | Parts]) :-
+	!,
+	inst(IN, instance(IN, CN, Fields)),
+    asserta(field_in_class(field(FN, instance(IN, CN, Fields), []), ClassName)),	
+    are_parts(ClassName, Parts), !.
+	
 are_parts(ClassName, [field(FN, FV) | Parts]) :-
-    asserta(field_in_class(field(FN, FV, _), ClassName)),	
+    asserta(field_in_class(field(FN, FV, []), ClassName)),	
     are_parts(ClassName, Parts), !.
 
 is_instance(instance(Instance, ClassName, _)) :-
@@ -232,7 +254,6 @@ are_parts_in_instance(Instance, CN, Parts) :-
     are_parts_in_instance(Instance, FFC, MFC, Parts).
 
 are_parts_in_instance(_, [], [], []) :- !.
-
 
 are_parts_in_instance(Instance, [field(FN, _, Type) | OtherPartsFC], MethodsFC, PartsToOverride) :-
     list_member(FN=NFV, PartsToOverride),
